@@ -183,6 +183,25 @@ body {
 }
 .fee-notice svg { flex-shrink: 0; width: 13px; height: 13px; }
 
+.transfer-fee-warning {
+    margin: 12px 24px 0;
+    padding: 12px 14px;
+    border: 1px solid #f59e0b;
+    border-left: 3px solid #dc2626;
+    border-radius: 10px;
+    background: #fff7ed;
+    color: #9a3412;
+    font-size: 13px;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+.transfer-fee-warning strong {
+    display: block;
+    margin-bottom: 4px;
+    color: #b91c1c;
+    font-weight: 700;
+}
+
 .timer-badge-wrap { position: relative; display: inline-flex; flex-shrink: 0; }
 .timer-badge {
     display: inline-flex;
