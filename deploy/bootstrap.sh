@@ -14,7 +14,7 @@ curl --noproxy '*' --proto '=https' --proto-redir '=https' -fsSL \
 mkdir "$download_dir/source"
 tar --no-same-owner --strip-components=1 -xzf "$download_dir/source.tar.gz" -C "$download_dir/source"
 cd "$download_dir/source/deploy"
-printf '%s  %s\n' 'a58f3e2f24337317a6625722ae4df029cb8aa03643c6fe3c60f9e4c313562301' SHA256SUMS | sha256sum -c -
+printf '%s  %s\n' '3e8dfef7514b6f779ac8a2160abd1ba6e6beea2e838cec20751dd511491e3606' SHA256SUMS | sha256sum -c -
 python3 - <<'PY'
 from pathlib import Path
 base = Path.cwd()

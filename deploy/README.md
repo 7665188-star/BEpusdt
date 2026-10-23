@@ -6,6 +6,17 @@
 
 本次只部署商城和 USDT 收款。卡密兑换站、Session 充值、订单页跳转、商城功能精简均不包含在此教程中。商城本身仍支持正常导入和交付商品卡密。
 
+## 快速操作：实际只做这几步
+
+1. 准备全新 Debian 12 x86_64、两个域名；设置 DNS，放行 TCP 80、443 和自己的 SSH 端口。
+2. 用 Netcatty 连接，在第 4 节复制一次下载命令。
+3. 直接运行 `bash /root/shop-stack-source/deploy/install.sh`。按提示填写四项信息，生成服务器上的私有 `config.env`；再按官方向导设置商城管理员。系统准备、商城、支付、证书、付款提醒和服务检查会依次完成。
+4. 按第 9、10 节在网页后台填写收款钱包、RPC 和商城支付渠道；执行第 11 节的配置检查，做一笔真实付款验收。
+
+**正常新装按上面流程即可，不需要再逐一执行 `00-prepare.sh`、`01-mall.sh`、`02-payment.sh`。**中断后仍运行第 3 步同一条命令，已完成的阶段会跳过；不要重新下载或删除配置。
+
+这能减少终端操作，不能省掉 DNS/安全组、管理员设置、钱包和节点信息，也不能用程序安装成功代替真实付款验收。下文保留逐项说明，便于查看字段与排错。
+
 ## 1. 这一版使用什么
 
 | 组件 | 固定来源与版本 |
@@ -94,12 +105,12 @@ uname -m
 bash <<'SH'
 set -Eeuo pipefail
 apt-get update
-DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl python3
+DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl python3 util-linux
 curl --noproxy '*' --proto '=https' --proto-redir '=https' -fsSL \
   --retry 3 --retry-all-errors --retry-delay 2 --connect-timeout 10 --max-time 180 \
   https://raw.githubusercontent.com/7665188-star/BEpusdt/codex/ssh-deploy/deploy/bootstrap.sh \
   -o /root/bootstrap-shop-stack.sh
-BOOTSTRAP_SHA256='d5306433a7a953c62686b20ee79474c0edc2e32ff9da614e5994feb723612068'
+BOOTSTRAP_SHA256='3e9f6724b632415adf80e0ec9dcdba34d6fc3d00844864bd2a1de4b9c55b14f5'
 printf '%s  %s\n' "$BOOTSTRAP_SHA256" /root/bootstrap-shop-stack.sh | sha256sum -c -
 bash /root/bootstrap-shop-stack.sh
 SH
@@ -107,7 +118,7 @@ SH
 
 服务器会直接下载你的 Fork、核对文件并准备好安装目录。必须看到 `PASS: fork source and deployment scripts downloaded and verified` 再继续。出现下载或校验错误就停止，不要跳过校验。
 
-这段命令只负责下载，不需要键盘输入。下一节的域名填写和商城安装必须直接在终端交互运行。下载成功后不要重复执行本节；中断后按第 12 节继续，保留原配置。
+这段命令只负责下载，不需要键盘输入。下一节的总安装入口必须直接在终端交互运行。下载成功后不要重复执行本节；中断后按第 12 节继续，保留原配置。
 
 按章节逐段执行，看到本段通过再进行下一段，不要一次粘贴整篇教程。若终端显示 `(END)`，先按 **Q** 返回提示符。交互窗口使用 Tab 切换、Enter 确认；退出或断线后重新连接，进入下面的工作目录，再按第 12 节继续：
 
@@ -115,24 +126,27 @@ SH
 cd /root/shop-stack-source/deploy
 ```
 
-## 5. 只填写一次你的域名
+## 5. 一条命令开始安装，四项信息只填一次
 
-接着直接运行配置向导：
-
-```bash
-cd /root/shop-stack-source/deploy
-bash configure.sh
-```
-
-依次输入：商城域名、支付域名、证书邮箱、VPS 公网 IPv4。域名不要带 `https://`、端口或结尾 `/`。在 Netcatty 远程终端直接运行 `bash configure.sh`，不要把它包在 `bash <<'SH'` 或管道中，以免无法正常读取键盘输入。
-
-脚本会生成本机私有 `config.env`，后续全部步骤复用这份配置。不要把正文示例域名留在里面。安装开始后不要重新运行 `configure.sh` 来更换域名；先完成当前部署，域名迁移另行处理。
-
-## 6. 系统与 DNS 预检
+下载成功后，在 Netcatty 远程终端直接运行：
 
 ```bash
-bash 00-prepare.sh
+bash /root/shop-stack-source/deploy/install.sh
 ```
+
+第一次运行会自动打开配置向导，依次输入：商城域名、支付域名、证书邮箱、VPS 公网 IPv4。域名不要带 `https://`、端口或结尾 `/`。不要把总安装命令包在 `bash <<'SH'` 或管道中；它需要读取键盘输入。
+
+脚本会生成 **Debian 服务器上仅 root 可读写的 `config.env`**，后续全部步骤复用，不用重复输入。已有合法配置时不会重新询问。不要把正文示例域名留在里面。
+
+随后自动依次执行四个阶段：系统与域名检查 → 官方商城安装 → 支付服务和提醒安装 → 服务验收。商城管理员账号、密码和安装确认仍按官方向导填写；后台入口、端口保持默认，SMTP 先选择不配置。
+
+完成后终端会集中列出商城、商城后台、支付后台地址，以及支付账号密码的私有文件位置。只表示程序与 HTTPS 已安装完成；接着做第 9、10、11 节，不要提前把正式商品开放收款。
+
+安装开始后保持 `config.env` 不变。总入口会记录阶段和配置校验值；配置被改动时会停止，避免续装到别的域名。域名迁移应另行处理。
+
+## 6. 自动阶段一：系统与 DNS 预检（正常安装无需单独执行）
+
+总入口会自动调用 `00-prepare.sh`。
 
 脚本安装 Nginx、Certbot、Redis、PyYAML 等依赖，检查系统版本、时间和两个域名的解析。不会覆盖现有部署；若发现已有安装会停止。
 
@@ -153,15 +167,13 @@ ss -ltn '( sport = :80 )'
 
 **服务器能解析域名、Nginx 已监听，不等于公网入站已经放通。**在云服务商网页确认 TCP 80、443 入站放行；后续脚本检查本机及域名挑战文件，证书申请还必须通过 Let's Encrypt 的外部验证。任何检查失败都先排查，不跳过验证。这时浏览器访问根目录显示默认页或 404，并不能单独判断证书挑战路径是否正常。
 
-若 NTP 暂未就绪，等待后重跑 `00-prepare.sh`。若 DNS 不符，先修 DNS，不要继续反复申请证书。
+若 NTP 暂未就绪，等待后重跑第 5 节的总安装命令。若 DNS 不符，先修 DNS，不要继续反复申请证书。
 
-## 7. 安装官方独角 Next
+## 7. 自动阶段二：安装官方独角 Next（正常安装无需单独执行）
 
-```bash
-bash 01-mall.sh
-```
+总入口会自动调用 `01-mall.sh`，继续在 Netcatty 中完成官方交互向导。
 
-这是交互式安装，**直接运行该命令，不要用 `curl | bash`，也不要套进无终端的 here-document**。
+这是交互式安装，总入口会保留终端供向导使用。
 
 - 域名与证书邮箱从 `config.env` 读取，避免重复输入错误。
 - 自行设置管理员账号、密码，保存好；后台路径建议保留生成的随机值。
@@ -169,7 +181,7 @@ bash 01-mall.sh
 - 第一遍建议暂不配置 SMTP。站点成功运行后再在后台配置并发送测试邮件。
 - 安装器申请证书前会验证随机挑战文件：本机 Host 路由和域名路由必须都返回完全相同的内容。
 
-安装完成后执行：
+商城阶段完成后，总入口会继续安装支付，不必暂停来运行下面的诊断命令。需要单独查看商城状态与后台地址时可执行：
 
 ```bash
 systemctl is-active --no-pager dujiao-next dujiao-next-redis nginx
@@ -187,11 +199,9 @@ PY
 
 管理员密码安装后会从 bootstrap 配置中清除。请自行保存；遗忘时使用官方管理器的 `admin-reset-password`，不要指望安装后还能读出原明文密码。
 
-## 8. 安装 Fork BEpusdt，并发布支付 HTTPS
+## 8. 自动阶段三、四：支付安装与服务验收（正常安装无需单独执行）
 
-```bash
-bash 02-payment.sh
-```
+总入口自动调用 `02-payment.sh`，随后调用 `04-check.sh --services-only` 检查服务、HTTPS 和提醒；这时钱包与支付渠道尚未配置，所以先不执行交易配置检查。
 
 脚本会：
 
@@ -316,15 +326,15 @@ bash 04-check.sh
 | HTTPS 的商城 `/health` 失败 | 商城进程、代理端口、证书或站点配置 |
 | 只有某条链收不到付款 | 钱包类型、RPC、金额和链上交易；不属于 ACME 404 |
 
-失败时保留所有文件，修复后**重新运行失败的那一步**：
+使用总入口安装时，失败后保留所有文件，修复提示的问题，再运行同一条命令：
 
 ```bash
-# 商城中断：续装，不重新建站
-bash /root/shop-stack-source/deploy/01-mall.sh
-
-# 支付中断：沿用原数据库与凭据继续
-bash /root/shop-stack-source/deploy/02-payment.sh
+bash /root/shop-stack-source/deploy/install.sh
 ```
+
+总入口会从已记录的阶段继续；商城和支付内部也保留各自的断点状态。若服务验收失败，修复对应服务后重跑，总入口会重新验收。它不重置管理员、钱包或 Token，也不是升级/修复数据库的工具。
+
+只有明确按分步脚本安装或定向排错时，才单独运行对应的 `00-prepare.sh`、`01-mall.sh`、`02-payment.sh`；不要把整篇教程中的诊断命令也当成必做步骤。
 
 不要删数据库、安装状态、证书目录，也不要反复换域名碰运气。脚本若提示“unmanaged/existing/differs”，先停止核对，不能通过删文件绕过去。
 
@@ -353,7 +363,7 @@ Nginx 保留了 HTTP 的 ACME 路径，续期后有部署钩子重载 Nginx。�
 - 商城：`/opt/dujiao-next/` 的配置、数据库、上传目录；`/etc/dujiao-next/` 的安装状态和 Redis 配置。
 - 支付：`/var/lib/bepusdt/`、`/root/shop-stack/bepusdt-credentials.txt`、`/etc/shop-stack/`。
 - 系统：相应 systemd unit、Nginx 站点、`/etc/letsencrypt/` 证书及续期配置。
-- `/root/shop-stack-source/` 中的安装脚本、你的 `deploy/config.env`、SHA256SUMS、SOURCE.json。
+- `/root/shop-stack-source/` 中的安装脚本、你的 `deploy/config.env`、`deploy/.install-progress`、SHA256SUMS、SOURCE.json。
 
 复制正在写入的 SQLite 单文件可能遗漏 WAL。需要做数据库备份时，使用 SQLite backup API，或在维护窗口停止对应服务后完整备份其数据目录；不要只复制一个正在使用的 `.db` 文件当作可靠备份。
 
