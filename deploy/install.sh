@@ -55,7 +55,7 @@ if [[ $phase == prepared ]]; then
   save_phase mall_installed
 fi
 if [[ $phase == mall_installed ]]; then
-  current_step='3/4 支付服务与提醒安装'
+  current_step='3/4 官方支付服务安装'
   printf '\n=== %s ===\n' "$current_step"
   bash "$STACK_ROOT/02-payment.sh"
   save_phase payment_installed

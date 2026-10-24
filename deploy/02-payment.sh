@@ -4,6 +4,7 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/common.sh"
 verify_bundle
 load_config
 check_dns
+[[ ! -e /var/lib/bepusdt/static/checkout && ! -L /var/lib/bepusdt/static/checkout ]] || die 'External checkout templates already exist. This installer keeps the official embedded checkout; existing templates were preserved.'
 state=/etc/shop-stack/payment.json
 work=/root/shop-stack
 site=/etc/nginx/sites-available/bepusdt.conf
@@ -25,7 +26,7 @@ else
   done
   [[ -z $(ss -ltnH 'sport = :8082') ]] || die 'Port 8082 is already occupied.'
   install -d -m 0700 /etc/shop-stack
-  jq -n --arg domain "$PAY_DOMAIN" '{domain:$domain,phase:"prepared",commit:"0be695f00aa38d8f961415bd4cfb5fa7f21eab42"}' > "$state"
+  jq -n --arg domain "$PAY_DOMAIN" '{domain:$domain,phase:"prepared",release:"v1.24.3",commit:"07164853c38ed43700d3abcaab78e832782d36fa"}' > "$state"
 fi
 install -d -m 0700 "$work"
 getent passwd bepusdt >/dev/null || useradd --system --user-group --home-dir /var/lib/bepusdt --shell /usr/sbin/nologin bepusdt
@@ -47,21 +48,6 @@ else
   install -o root -g root -m 0755 "$work/release/bepusdt" /opt/bepusdt/bepusdt
 fi
 install -d -o bepusdt -g bepusdt -m 0750 /var/lib/bepusdt /var/log/bepusdt
-install -d -o root -g bepusdt -m 0750 /var/lib/bepusdt/static
-checkout_source="$STACK_ROOT/../static/checkout"
-checkout_target=/var/lib/bepusdt/static/checkout
-[[ -d $checkout_source ]] || die 'Fork checkout source is missing; download the complete repository with bootstrap.sh.'
-if [[ -e $checkout_target || -L $checkout_target ]]; then
-  [[ -d $checkout_target && ! -L $checkout_target ]] || die 'Unexpected checkout target.'
-  diff -qr "$checkout_source" "$checkout_target" || die 'Existing checkout differs from this pinned fork; preserve it and inspect.'
-else
-  checkout_stage=$(mktemp -d /var/lib/bepusdt/static/.checkout-XXXXXXXX)
-  cp -a "$checkout_source/." "$checkout_stage/"
-  chown -R root:bepusdt "$checkout_stage"
-  find "$checkout_stage" -type d -exec chmod 0750 {} +
-  find "$checkout_stage" -type f -exec chmod 0640 {} +
-  mv -T -- "$checkout_stage" "$checkout_target"
-fi
 touch /var/log/bepusdt/console.log
 chown root:root /var/log/bepusdt/console.log
 chmod 0600 /var/log/bepusdt/console.log
@@ -71,7 +57,7 @@ fi
 cat > /etc/systemd/system/bepusdt.service <<'UNIT'
 # Managed by portable shop-stack BEpusdt
 [Unit]
-Description=BEpusdt v1.24.3 with fork checkout 0be695f
+Description=BEpusdt official v1.24.3
 Wants=network-online.target
 After=network-online.target
 [Service]
@@ -210,6 +196,6 @@ HOOK
 chmod 0755 /etc/letsencrypt/renewal-hooks/deploy/shop-stack-nginx
 systemctl enable --now certbot.timer
 jq '.phase="published"' "$state" > "$state.next" && mv -f "$state.next" "$state"
-echo 'PASS: payment service is published with fork checkout notice 0be695f.'
+echo 'PASS: official BEpusdt service is published without custom templates.'
 echo 'Private credentials: /root/shop-stack/bepusdt-credentials.txt'
 echo 'Next: configure receiving wallets, RPC and mall payment channels; complete a real payment test.'

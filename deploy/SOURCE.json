@@ -1,6 +1,6 @@
 {
   "created_for": "fresh Debian 12 x86_64 only",
-  "date": "2026-10-24",
+  "date": "2026-10-25",
   "shop": {
     "repository": "dujiao-next/dujiao-next",
     "release": "v1.5.0",
@@ -8,12 +8,17 @@
     "manager_original_sha256": "7b30683a41b5e5150e667dae32e04aa441418398fb9da4351e27d677ab6826fb"
   },
   "payment": {
-    "repository": "7665188-star/BEpusdt",
-    "branch": "codex/checkout-fee-notice",
-    "commit": "0be695f00aa38d8f961415bd4cfb5fa7f21eab42",
+    "repository": "v03413/BEpusdt",
+    "release": "v1.24.3",
+    "commit": "07164853c38ed43700d3abcaab78e832782d36fa",
     "version": "v1.24.3-0716485",
     "executable_url": "https://github.com/v03413/BEpusdt/releases/download/v1.24.3/linux-amd64-BEpusdt.tar.gz",
     "executable_archive_sha256": "b8c9769315282880653f5f674eb2ef33ae2a8be138d924dc4b3172f17d0d2f21",
-    "deployment": "Official executable plus external checkout templates from the pinned fork commit; no server compilation."
+    "deployment": "Official executable with its embedded official checkout; no custom templates installed."
+  },
+  "optional_notice_patch": {
+    "installed_by_default": false,
+    "expected_installed_version": "v1.24.3-0716485",
+    "archive_sha256": "a888c86f89daa113216ad5d2d7cb1fd4c167e67eb887eba523567ca1ccb59af4"
   }
 }
